@@ -431,6 +431,35 @@ const facebookLogin = async (req, res) => {
         res.status(500).json({ message: 'Lỗi đăng nhập Facebook', error: err.message });
     }
 };
+// Xóa tài khoản
+const deleteAccount = async (req, res) => {
+    const { id } = req.params;
+
+    console.log("ID nhận được từ request:", id); // Kiểm tra ID trong console
+
+    try {
+        const account = await Account.findByIdAndDelete(id);
+        if (!account) {
+            return res.status(404).json({
+                status: "thất bại",
+                message: "Tài khoản không tồn tại."
+            });
+        }
+
+        res.status(200).json({
+            status: "thành công",
+            message: "Tài khoản đã được xóa thành công."
+        });
+    } catch (error) {
+        console.error("Lỗi khi xóa tài khoản:", error);
+        res.status(500).json({
+            status: "thất bại",
+            message: "Đã xảy ra lỗi khi xóa tài khoản."
+        });
+    }
+};
+
+
 module.exports = {
     createAccount,
     verifyAccount,
@@ -443,5 +472,6 @@ module.exports = {
     resetPassword,
     verifyCode,
     googleLogin,
-    facebookLogin
+    facebookLogin,
+    deleteAccount
 };
