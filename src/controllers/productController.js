@@ -95,11 +95,36 @@ const deleteProduct = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+// Tìm kiếm sản phẩm theo tên (gợi ý sản phẩm)
+// Gợi ý hoặc tìm kiếm sản phẩm theo tên
+const searchProductsByName = async (req, res) => {
+    const { name } = req.query;
+
+    try {
+        let products;
+
+        if (!name) {
+            // Nếu không nhập tên -> gợi ý 5 sản phẩm mới nhất
+            products = await Product.find().sort({ createdAt: -1 }).limit(5).populate('category_id');
+        } else {
+            // Nếu có nhập tên -> tìm theo từ khóa
+            products = await Product.find({
+                name: { $regex: name, $options: 'i' }
+            }).populate('category_id');
+        }
+
+        return res.status(200).json(products);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 
 module.exports = {
     getAllProducts,
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    searchProductsByName
 };
