@@ -12,6 +12,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const cozeRoutes = require('./routes/cozeRoutes');
 const cloudinary = require('./cloudinary');
 const multer = require('multer');
 
@@ -44,6 +45,7 @@ app.use('/api', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/coze', cozeRoutes);
 // Kết nối đến MongoDB
 mongoose.connect('mongodb://localhost:27017/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {

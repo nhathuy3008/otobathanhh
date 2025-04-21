@@ -50,9 +50,6 @@ const createAccount = async (req, res) => {
         return res.status(500).send('Đã xảy ra lỗi khi gửi email xác thực.');
     }
 };
-
-
-
 // Xác thực tài khoản
 const verifyAccount = async (req, res) => {
     const { email, code } = req.body; // Lấy email và mã từ body
@@ -458,8 +455,6 @@ const deleteAccount = async (req, res) => {
         });
     }
 };
-
-
 module.exports = {
     createAccount,
     verifyAccount,
@@ -468,7 +463,7 @@ module.exports = {
     getAccountById,
     updateAccount,
     validatePassword,
-    forgotPassword,     // Thêm vào để xuất khẩu phương thức forgotPassword
+    forgotPassword,
     resetPassword,
     verifyCode,
     googleLogin,

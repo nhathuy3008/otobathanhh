@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const commentsController = require('../controllers/commentController'); // Đảm bảo đường dẫn này đúng
+const commentController = require('../controllers/commentController');
 
-// Route để tạo một bình luận mới
-router.post('/create', commentsController.createComment);
+// 📌 Tạo bình luận
+router.post('/create', commentController.createComment);
 
-// Route để lấy tất cả bình luận cho một bài hát
-router.get('/song/:songId', commentsController.getCommentsByProductId);
+// 📌 Lấy bình luận theo sản phẩm
+router.get('/product/:productId', commentController.getCommentsByProductId);
 
-// Route để xóa một bình luận
-router.delete('/:id', commentsController.deleteComment);
+// 📌 Xoá bình luận — yêu cầu accountId gửi kèm body
+router.delete('/:id', commentController.deleteComment);
 
-// Route để đếm số bình luận cho một bài hát
-router.get('/song/:songId/count', commentsController.getCommentCountByProductId);
+// 📌 Cập nhật bình luận — yêu cầu accountId và newContent
+router.put('/:id', commentController.updateComment);
+
+// 📌 Đếm bình luận theo sản phẩm
+router.get('/count/:productId', commentController.getCommentCountByProductId);
 
 module.exports = router;

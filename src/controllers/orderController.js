@@ -4,6 +4,57 @@ const CartItem = require('../models/CartItem');
 const Product = require('../models/Product');
 
 // 🟢 Tạo đơn hàng mới từ giỏ hàng
+// const createOrder = async (req, res) => {
+//   const { account_id, phone, name, email, payment_method, note } = req.body;
+
+//   try {
+//     // Lấy sản phẩm trong giỏ hàng
+//     const cartItems = await CartItem.find({ account_id }).populate('product_id');
+
+//     if (!cartItems.length) {
+//       return res.status(400).json({ message: 'Giỏ hàng trống!' });
+//     }
+
+//     // Tính tổng tiền
+//     const total = cartItems.reduce((sum, item) => {
+//       return sum + item.quantity * item.product_id.price;
+//     }, 0);
+
+//     // Tạo đơn hàng
+//     const order = new Order({
+//       account_id,
+//       phone,
+//       name,
+//       email,
+//       payment_method,
+//       note,
+//       total,
+//     });
+
+//     await order.save();
+
+//     // Tạo chi tiết đơn hàng cho mỗi sản phẩm trong giỏ
+//     for (const item of cartItems) {
+//       const orderDetail = new OrderDetail({
+//         order_id: order._id,
+//         product_id: item.product_id._id,
+//         quantity: item.quantity,
+//         price: item.product_id.price,
+//       });
+
+//       await orderDetail.save();
+//     }
+
+//     // Xóa giỏ hàng sau khi tạo đơn hàng
+//     await CartItem.deleteMany({ account_id });
+
+//     return res.status(201).json({ message: 'Đặt hàng thành công!', order });
+//   } catch (error) {
+//     console.error('❌ Lỗi khi tạo đơn hàng:', error);
+//     return res.status(500).json({ message: 'Lỗi khi tạo đơn hàng.', error: error.message });
+//   }
+// };
+// 🟢 Tạo đơn hàng mới từ giỏ hàng
 const createOrder = async (req, res) => {
   const { account_id, phone, name, email, payment_method, note } = req.body;
 
@@ -33,7 +84,7 @@ const createOrder = async (req, res) => {
 
     await order.save();
 
-    // Tạo chi tiết đơn hàng cho mỗi sản phẩm trong giỏ
+    // Tạo chi tiết đơn hàng cho mỗi sản phẩm trong giỏ + cập nhật tồn kho
     for (const item of cartItems) {
       const orderDetail = new OrderDetail({
         order_id: order._id,
@@ -43,6 +94,19 @@ const createOrder = async (req, res) => {
       });
 
       await orderDetail.save();
+
+      // ➖ Trừ số lượng sản phẩm trong kho
+      const product = await Product.findById(item.product_id._id);
+      if (product) {
+        product.quantity -= item.quantity;
+
+        // Đảm bảo không giảm về số âm
+        if (product.quantity < 0) {
+          return res.status(400).json({ message: `Sản phẩm ${product.name} không đủ số lượng trong kho.` });
+        }
+
+        await product.save();
+      }
     }
 
     // Xóa giỏ hàng sau khi tạo đơn hàng

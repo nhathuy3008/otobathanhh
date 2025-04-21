@@ -34,7 +34,7 @@ const createComment = async (req, res) => {
             return res.status(400).json({ message: "Sản phẩm không tồn tại." }); 
         }
 
-        // Kiểm tra bình luận độc hại (ví dụ như dùng API bên ngoài như HuggingFace)
+        // Kiểm tra bình luận độc hại
         const isToxic = await isCommentInappropriate(comment);
         if (isToxic) {
             return res.status(400).json({ message: "Bình luận này có nội dung độc hại." });
@@ -43,16 +43,14 @@ const createComment = async (req, res) => {
         // Tạo và lưu bình luận
         const newComment = new Comment({
             comment,
-            account: userAccount._id,  // Đảm bảo bạn truyền đúng ObjectId của tài khoản
-            product: productRecord._id // Đảm bảo bạn truyền đúng ObjectId của sản phẩm
+            account: userAccount._id,
+            product: productRecord._id
         });
 
-        // Lưu bình luận vào cơ sở dữ liệu
         await newComment.save();
 
-        // Cập nhật số lượng bình luận cho sản phẩm
-        productRecord.commentCount = (productRecord.commentCount || 0) + 1;
-        await productRecord.save();
+        // Tăng commentCount trong Product (an toàn hơn với $inc)
+        await Product.findByIdAndUpdate(productId, { $inc: { commentCount: 1 } });
 
         return res.status(201).json({ message: "Bình luận đã được thêm thành công!" });
         
@@ -61,7 +59,6 @@ const createComment = async (req, res) => {
         return res.status(500).json({ message: "Đã xảy ra lỗi server.", error: error.message });
     }
 };
-
 // 🧠 Kiểm tra toxic comment bằng HuggingFace
 const isCommentInappropriate = async (comment) => {
     if (!comment || comment.trim().length === 0) return false;
@@ -116,38 +113,86 @@ const getCommentsByProductId = async (req, res) => {
 const deleteComment = async (req, res) => {
     try {
         const commentId = req.params.id;
-        const deletedComment = await Comment.findByIdAndDelete(commentId);
+        const { accountId } = req.body; // Lấy accountId từ request body hoặc req.user nếu có middleware auth
 
-        if (!deletedComment) {
+        // Tìm bình luận
+        const comment = await Comment.findById(commentId);
+        if (!comment) {
             return res.status(404).json({ message: "Bình luận không tồn tại." });
         }
 
+        // ✅ Kiểm tra quyền: chỉ người đã comment mới được xoá
+        if (comment.account.toString() !== accountId) {
+            return res.status(403).json({ message: "Bạn không có quyền xoá bình luận này." });
+        }
+
+        // Xoá bình luận
+        await Comment.findByIdAndDelete(commentId);
+
         // Giảm số lượng bình luận
-        const productId = deletedComment.product;
-        await Product.findByIdAndUpdate(productId, { $inc: { commentCount: -1 } });
+        await Product.findByIdAndUpdate(comment.product, { $inc: { commentCount: -1 } });
 
         return res.status(200).json({ message: "Đã xoá bình luận thành công." });
+
     } catch (error) {
         console.error("❌ Lỗi khi xoá bình luận:", error);
         return res.status(500).json({ message: "Lỗi khi xoá bình luận." });
     }
 };
 
+
 //  Đếm số bình luận theo sản phẩm
 const getCommentCountByProductId = async (req, res) => {
     try {
-        const productId = req.params.productId; 
-        const count = await Comment.countDocuments({ product: productId }); 
-        return res.status(200).json({ count });
+        const productId = req.params.productId;
+
+        const product = await Product.findById(productId).select('commentCount');
+        if (!product) {
+            return res.status(404).json({ message: "Không tìm thấy sản phẩm." });
+        }
+
+        return res.status(200).json({ count: product.commentCount });
     } catch (error) {
-        console.error("❌ Lỗi khi đếm bình luận:", error);
-        return res.status(500).json({ message: "Lỗi khi đếm bình luận." });
+        console.error("❌ Lỗi khi lấy số lượng bình luận:", error);
+        return res.status(500).json({ message: "Lỗi khi lấy số lượng bình luận." });
+    }
+};
+const updateComment = async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        const { accountId, newContent } = req.body;
+
+        const comment = await Comment.findById(commentId);
+        if (!comment) {
+            return res.status(404).json({ message: "Bình luận không tồn tại." });
+        }
+
+        if (comment.account.toString() !== accountId) {
+            return res.status(403).json({ message: "Bạn không có quyền sửa bình luận này." });
+        }
+
+        // Optional: check toxic content again
+        const isToxic = await isCommentInappropriate(newContent);
+        if (isToxic) {
+            return res.status(400).json({ message: "Nội dung mới chứa nội dung độc hại." });
+        }
+
+        comment.comment = newContent;
+        await comment.save();
+
+        return res.status(200).json({ message: "Bình luận đã được cập nhật thành công." });
+
+    } catch (error) {
+        console.error("❌ Lỗi khi cập nhật bình luận:", error);
+        return res.status(500).json({ message: "Lỗi khi cập nhật bình luận." });
     }
 };
 
+
 module.exports = {
     createComment,
-    getCommentsByProductId, 
+    getCommentsByProductId,  
     deleteComment,
-    getCommentCountByProductId, 
+    getCommentCountByProductId,
+    updateComment
 };

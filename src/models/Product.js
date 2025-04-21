@@ -31,6 +31,10 @@ const productSchema = new Schema({
         type: String,
         default: '',
     },
+    commentCount: {
+        type: Number,
+        default: 0,
+    },
     date: {
         type: Date,
         default: Date.now,
