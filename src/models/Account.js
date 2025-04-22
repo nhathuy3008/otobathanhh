@@ -73,10 +73,6 @@ const accountSchema = new mongoose.Schema({
         },
         default: null
     },
-    phoneNumber: {
-        type: String,
-        default: null
-    },
     password: {
         type: String,
         required: function () {

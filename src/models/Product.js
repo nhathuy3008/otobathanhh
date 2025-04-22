@@ -35,6 +35,10 @@ const productSchema = new Schema({
         type: Number,
         default: 0,
     },
+    name_unsigned: {
+        type: String,
+        index: true, // Tăng tốc tìm kiếm
+    },    
     date: {
         type: Date,
         default: Date.now,

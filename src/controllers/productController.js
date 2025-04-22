@@ -33,17 +33,46 @@ const uploadImage = async (base64) => {
 };
 
 // Tạo sản phẩm
+// const createProduct = async (req, res) => {
+//     try {
+//         const { image, subImages, ...data } = req.body;
+
+//         const imageUrl = image ? await uploadImage(image) : null;
+//         const subImageUrls = subImages && subImages.length > 0
+//             ? await Promise.all(subImages.map(uploadImage))
+//             : [];
+
+//         const product = new Product({
+//             ...data,
+//             image: imageUrl,
+//             subImages: subImageUrls
+//         });
+
+//         await product.save();
+//         return res.status(201).json(product);
+//     } catch (error) {
+//         return res.status(400).json({ message: error.message });
+//     }
+// };
 const createProduct = async (req, res) => {
     try {
         const { image, subImages, ...data } = req.body;
 
+        // Bỏ dấu tiếng Việt để tạo name_unsigned
+        const name_unsigned = removeVietnameseTones(data.name);
+
+        // Upload ảnh chính nếu có
         const imageUrl = image ? await uploadImage(image) : null;
+
+        // Upload các ảnh phụ nếu có
         const subImageUrls = subImages && subImages.length > 0
             ? await Promise.all(subImages.map(uploadImage))
             : [];
 
+        // Tạo mới sản phẩm
         const product = new Product({
             ...data,
+            name_unsigned,
             image: imageUrl,
             subImages: subImageUrls
         });
@@ -95,8 +124,35 @@ const deleteProduct = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-// Tìm kiếm sản phẩm theo tên (gợi ý sản phẩm)
+//Tạo hàm loại bỏ dấu tiếng Việt
+function removeVietnameseTones(str) {
+    return str.normalize('NFD') // tách các dấu
+        .replace(/[\u0300-\u036f]/g, '') // xóa dấu
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+
 // Gợi ý hoặc tìm kiếm sản phẩm theo tên
+// const searchProductsByName = async (req, res) => {
+//     const { name } = req.query;
+
+//     try {
+//         let products;
+
+//         if (!name) {
+//             // Nếu không nhập tên -> gợi ý 5 sản phẩm mới nhất
+//             products = await Product.find().sort({ createdAt: -1 }).limit(5).populate('category_id');
+//         } else {
+//             // Nếu có nhập tên -> tìm theo từ khóa
+//             products = await Product.find({
+//                 name: { $regex: name, $options: 'i' }
+//             }).populate('category_id');
+//         }
+
+//         return res.status(200).json(products);
+//     } catch (error) {
+//         return res.status(500).json({ message: error.message });
+//     }
+// };
 const searchProductsByName = async (req, res) => {
     const { name } = req.query;
 
@@ -105,11 +161,15 @@ const searchProductsByName = async (req, res) => {
 
         if (!name) {
             // Nếu không nhập tên -> gợi ý 5 sản phẩm mới nhất
-            products = await Product.find().sort({ createdAt: -1 }).limit(5).populate('category_id');
+            products = await Product.find()
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .populate('category_id');
         } else {
-            // Nếu có nhập tên -> tìm theo từ khóa
+            const unsignedName = removeVietnameseTones(name);
+
             products = await Product.find({
-                name: { $regex: name, $options: 'i' }
+                name_unsigned: { $regex: unsignedName, $options: 'i' }
             }).populate('category_id');
         }
 
@@ -118,7 +178,6 @@ const searchProductsByName = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
 
 module.exports = {
     getAllProducts,
