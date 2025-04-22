@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
-
+const verifyRole = require('../middleware/authMiddleware');
 // ==== Order Routes ====
 
 // Tạo đơn hàng
@@ -11,15 +11,15 @@ router.post('/', orderController.createOrder);
 router.get('/account/:account_id', orderController.getOrdersByAccount);
 
 // Cập nhật trạng thái đơn hàng
-router.put('/:id', orderController.updateOrderStatus);
+router.put('/:id',verifyRole('admin','master'), orderController.updateOrderStatus);
 
 // Xoá đơn hàng
-router.delete('/:id', orderController.deleteOrder);
+router.delete('/:id',verifyRole('admin','master'), orderController.deleteOrder);
 
 // ==== Order Detail Routes ====
 
 // Thêm chi tiết đơn hàng
-router.post('/detail', orderController.addOrderDetail);
+router.post('/detail',verifyRole('admin','master'), orderController.addOrderDetail);
 
 // Lấy tất cả chi tiết đơn hàng theo order_id
 router.get('/detail/:order_id', orderController.getOrderDetailsByOrder);
