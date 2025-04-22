@@ -5,7 +5,7 @@ const verifyRole = require('../middleware/authMiddleware');
 // ==== Order Routes ====
 
 // Tạo đơn hàng
-router.post('/', orderController.createOrder);
+router.post('/create', orderController.createOrder);
 
 // Lấy đơn hàng theo account
 router.get('/account/:account_id', orderController.getOrdersByAccount);
@@ -26,5 +26,6 @@ router.get('/detail/:order_id', orderController.getOrderDetailsByOrder);
 
 // Xóa chi tiết đơn hàng theo id
 router.delete('/detail/:id', orderController.deleteOrderDetail);
+router.get('/',verifyRole('admin','master'), orderController.getAllOrders);
 
 module.exports = router;

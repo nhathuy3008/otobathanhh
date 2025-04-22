@@ -220,9 +220,17 @@ const deleteOrderDetail = async (req, res) => {
     return res.status(500).json({ message: 'Lỗi server.' });
   }
 };
+// 📋 Lấy tất cả đơn hàng (admin)
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error('❌ Lỗi khi lấy tất cả đơn hàng:', error);
+    return res.status(500).json({ message: 'Lỗi server khi lấy đơn hàng.' });
+  }
+};
 
-// ✅ Xuất toàn bộ controller
-// ✅ Đúng:
 module.exports = {
     createOrder,
     getOrdersByAccount,
@@ -231,5 +239,6 @@ module.exports = {
     addOrderDetail,
     getOrderDetailsByOrder,
     deleteOrderDetail,
+    getAllOrders
   };
   
