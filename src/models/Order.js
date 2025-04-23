@@ -33,7 +33,7 @@ const orderSchema = new Schema(
     },
     payment_method: {
       type: String,
-      enum: ['COD', 'Banking', 'Momo', 'ZaloPay'],
+      enum: ['COD', 'Banking', 'Momo', 'ZaloPay', 'VNPAY'], // ➕ Thêm 'VNPAY'
       default: 'COD',
     },
     total: {
@@ -56,6 +56,7 @@ const orderSchema = new Schema(
       },
     },
   },
+  
   { timestamps: true }
 );
 

@@ -2,59 +2,10 @@ const Order = require('../models/Order');
 const OrderDetail = require('../models/OrderDetail');
 const CartItem = require('../models/CartItem');
 const Product = require('../models/Product');
+const crypto = require('crypto');
+const qs = require('qs');
+const axios = require('axios');
 
-// 🟢 Tạo đơn hàng mới từ giỏ hàng
-// const createOrder = async (req, res) => {
-//   const { account_id, phone, name, email, payment_method, note } = req.body;
-
-//   try {
-//     // Lấy sản phẩm trong giỏ hàng
-//     const cartItems = await CartItem.find({ account_id }).populate('product_id');
-
-//     if (!cartItems.length) {
-//       return res.status(400).json({ message: 'Giỏ hàng trống!' });
-//     }
-
-//     // Tính tổng tiền
-//     const total = cartItems.reduce((sum, item) => {
-//       return sum + item.quantity * item.product_id.price;
-//     }, 0);
-
-//     // Tạo đơn hàng
-//     const order = new Order({
-//       account_id,
-//       phone,
-//       name,
-//       email,
-//       payment_method,
-//       note,
-//       total,
-//     });
-
-//     await order.save();
-
-//     // Tạo chi tiết đơn hàng cho mỗi sản phẩm trong giỏ
-//     for (const item of cartItems) {
-//       const orderDetail = new OrderDetail({
-//         order_id: order._id,
-//         product_id: item.product_id._id,
-//         quantity: item.quantity,
-//         price: item.product_id.price,
-//       });
-
-//       await orderDetail.save();
-//     }
-
-//     // Xóa giỏ hàng sau khi tạo đơn hàng
-//     await CartItem.deleteMany({ account_id });
-
-//     return res.status(201).json({ message: 'Đặt hàng thành công!', order });
-//   } catch (error) {
-//     console.error('❌ Lỗi khi tạo đơn hàng:', error);
-//     return res.status(500).json({ message: 'Lỗi khi tạo đơn hàng.', error: error.message });
-//   }
-// };
-// 🟢 Tạo đơn hàng mới từ giỏ hàng
 const createOrder = async (req, res) => {
   const { account_id, phone, name, email, payment_method, note } = req.body;
 
@@ -118,8 +69,6 @@ const createOrder = async (req, res) => {
     return res.status(500).json({ message: 'Lỗi khi tạo đơn hàng.', error: error.message });
   }
 };
-
-// 🧠 Lấy đơn hàng theo account
 const getOrdersByAccount = async (req, res) => {
   const { account_id } = req.params;
 
@@ -230,15 +179,47 @@ const getAllOrders = async (req, res) => {
     return res.status(500).json({ message: 'Lỗi server khi lấy đơn hàng.' });
   }
 };
+// 📈 Tính tổng doanh thu trong 1 tháng gần nhất
+const getMonthlyRevenue = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Lấy ngày đầu tháng hiện tại
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Lấy ngày đầu tháng tiếp theo
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    // Tìm đơn hàng được tạo trong tháng hiện tại
+    const orders = await Order.find({
+      createdAt: {
+        $gte: startOfMonth,
+        $lt: startOfNextMonth,
+      },
+    });
+
+    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+
+    return res.status(200).json({
+      message: 'Tổng doanh thu trong 1 tháng gần nhất',
+      totalRevenue,
+      numberOfOrders: orders.length,
+    });
+  } catch (error) {
+    console.error('❌ Lỗi khi tính doanh thu:', error);
+    return res.status(500).json({ message: 'Lỗi khi tính doanh thu.' });
+  }
+};
+
 
 module.exports = {
-    createOrder,
-    getOrdersByAccount,
-    updateOrderStatus,
-    deleteOrder,
-    addOrderDetail,
-    getOrderDetailsByOrder,
-    deleteOrderDetail,
-    getAllOrders
-  };
-  
+  createOrder,
+  getOrdersByAccount,
+  updateOrderStatus,
+  deleteOrder,
+  addOrderDetail,
+  getOrderDetailsByOrder,
+  deleteOrderDetail,
+  getAllOrders,
+  getMonthlyRevenue
+};

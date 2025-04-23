@@ -27,5 +27,5 @@ router.get('/detail/:order_id', orderController.getOrderDetailsByOrder);
 // Xóa chi tiết đơn hàng theo id
 router.delete('/detail/:id', orderController.deleteOrderDetail);
 router.get('/',verifyRole('admin','master'), orderController.getAllOrders);
-
+router.get('/revenue/monthly', orderController.getMonthlyRevenue);
 module.exports = router;
