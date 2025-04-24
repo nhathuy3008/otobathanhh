@@ -23,23 +23,27 @@ const createContact = async (req, res) => {
 
         const selectedDate = new Date(date);
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const now = new Date();
+        today.setHours(0, 0, 0, 0); // reset về đầu ngày
+
+        const now = new Date(); // thời điểm hiện tại
 
         const validTimeSlots = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
 
+        // Kiểm tra khung giờ hợp lệ
         if (!validTimeSlots.includes(timeSlot)) {
             return res.status(400).json({ message: 'Khung giờ không hợp lệ.' });
         }
 
+        // Kiểm tra ngày không được là quá khứ
         if (selectedDate < today) {
             return res.status(400).json({ message: 'Không thể đặt lịch cho ngày trong quá khứ.' });
         }
 
-        const isToday = selectedDate.getTime() === today.getTime();
+        // Nếu là ngày hôm nay, kiểm tra giờ phải còn trong tương lai
+        const isToday = selectedDate.toDateString() === today.toDateString();
         if (isToday) {
             const [slotHour, slotMinute] = timeSlot.split(':').map(Number);
-            const selectedSlotTime = new Date();
+            const selectedSlotTime = new Date(selectedDate); // dùng chính ngày đã chọn
             selectedSlotTime.setHours(slotHour, slotMinute, 0, 0);
 
             if (selectedSlotTime <= now) {
@@ -47,16 +51,19 @@ const createContact = async (req, res) => {
             }
         }
 
+        // Kiểm tra số điện thoại hợp lệ
         const phoneRegex = /^0\d{9}$/;
         if (!phoneRegex.test(numberPhone)) {
             return res.status(400).json({ message: 'Số điện thoại không hợp lệ.' });
         }
 
+        // Upload ảnh nếu có
         let imageUrls = [];
         if (images && images.length > 0) {
             imageUrls = await Promise.all(images.map(uploadImage));
         }
 
+        // Tạo mới contact
         const newContact = new Contact({
             fullName,
             date: selectedDate,
