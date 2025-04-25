@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const contactController = require('../controllers/contactController');
-const verifyRole = require('../middleware/authMiddleware'); // đã đổi tên từ verifyAdmin
+const verifyRole = require('../middleware/authMiddleware');
+router.get('/by-timeslot', contactController.getContactsByTimeSlot);
+router.get('/by-date', contactController.getContactsByDate);
 router.post('/create', contactController.createContact);
 router.get('/', verifyRole('admin','master'),contactController.getAllContacts);
 router.get('/:id',verifyRole('admin','master'), contactController.getContactById);

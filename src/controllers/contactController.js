@@ -183,6 +183,51 @@ const updateContactStatus = async (req, res) => {
         return res.status(500).json({ message: 'Đã xảy ra lỗi khi cập nhật trạng thái.' });
     }
 };
+// Lấy danh sách contact theo khung giờ (mọi ngày)
+const getContactsByTimeSlot = async (req, res) => {
+    try {
+        const { timeSlot } = req.query;
+
+        if (!timeSlot) {
+            return res.status(400).json({ message: 'Thiếu khung giờ.' });
+        }
+
+        const contacts = await Contact.find({ timeSlot }).sort({ date: 1, createdAt: -1 });
+
+        res.status(200).json(contacts);
+    } catch (error) {
+        console.error('Lỗi khi lấy theo khung giờ:', error);
+        res.status(500).json({ message: 'Lỗi server.' });
+    }
+};
+// Lấy danh sách contact theo ngày
+const getContactsByDate = async (req, res) => {
+    try {
+        const { date } = req.query;
+
+        if (!date) {
+            return res.status(400).json({ message: 'Thiếu ngày.' });
+        }
+
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        const nextDate = new Date(selectedDate);
+        nextDate.setDate(nextDate.getDate() + 1); // giới hạn trong ngày
+
+        const contacts = await Contact.find({
+            date: {
+                $gte: selectedDate,
+                $lt: nextDate
+            }
+        }).sort({ timeSlot: 1, createdAt: -1 });
+
+        res.status(200).json(contacts);
+    } catch (error) {
+        console.error('Lỗi khi lấy theo ngày:', error);
+        res.status(500).json({ message: 'Lỗi server.' });
+    }
+};
 
 module.exports = {
     createContact,
@@ -190,5 +235,7 @@ module.exports = {
     getContactById,
     updateContact,
     deleteContact,
-    updateContactStatus
+    updateContactStatus,
+    getContactsByTimeSlot,
+    getContactsByDate
 };
