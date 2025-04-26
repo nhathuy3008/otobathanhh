@@ -14,6 +14,7 @@ const bannerRoutes = require('./routes/bannerRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const cozeRoutes = require('./routes/cozeRoutes');
 const favoriteRoutes = require ('./routes/favoriteRoutes')
+const telegramWebhook = require('./routes/telegramWebhook');;
 const cloudinary = require('./cloudinary');
 const multer = require('multer');
 
@@ -48,8 +49,20 @@ app.use('/api/banners', bannerRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/coze', cozeRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/', telegramWebhook);
+
 // Kết nối đến MongoDB
-mongoose.connect('mongodb://localhost:27017/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
+// mongoose.connect('mongodb://localhost:27017/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
+//     .then(() => {
+//         console.log('Kết nối MongoDB thành công');
+//         app.listen(PORT, () => {
+//             console.log(`Server is running on port ${PORT}`);
+//         });
+//     })
+//     .catch(err => {
+//         console.error('Kết nối MongoDB thất bại', err);
+//     });
+mongoose.connect('mongodb://mongo:couQibWXAIZRTfDWQjjCSajfOiPZpnhR@caboose.proxy.rlwy.net:51891/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log('Kết nối MongoDB thành công');
         app.listen(PORT, () => {
