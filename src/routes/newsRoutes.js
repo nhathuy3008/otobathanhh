@@ -6,7 +6,7 @@ const verifyRole = require('../middleware/authMiddleware');
 router.get('/', newsController.getAllNews);
 
 // Lấy bài viết tin tức theo ID
-router.get('/:id',verifyRole('admin','master'), newsController.getNewsById);
+router.get('/:id', newsController.getNewsById);
 
 // Tạo bài viết tin tức mới
 router.post('/create',verifyRole('admin','master'), newsController.createNews);

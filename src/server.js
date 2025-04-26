@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 3000; // Lấy cổng từ biến môi trườn
 
 // Cấu hình CORS
 const corsOptions = {
-    origin: ['http://localhost:3001', 'http://localhost:5173','https://feotoo.vercel.app'], // Địa chỉ frontend
+    origin: ['http://localhost:3001', 'http://localhost:5173','https://bathanhfee.vercel.app'], // Địa chỉ frontend
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức HTTP được phép
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true, // Cho phép cookie và thông tin xác thực
