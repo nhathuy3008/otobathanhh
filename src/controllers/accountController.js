@@ -152,7 +152,7 @@ const getAccountById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const account = await Account.findById(id);
+        const account = await Account.findById(id).populate('roles');
 
         if (!account) {
             return res.status(404).json({
@@ -176,7 +176,7 @@ const getAccountById = async (req, res) => {
 // Lấy tất cả tài khoản
 const getAllAccounts = async (req, res) => {
     try {
-        const accounts = await Account.find();
+        const accounts = await Account.find().populate('roles')
         res.status(200).json(accounts);
     } catch (error) {
         return res.status(500).json({

@@ -11,10 +11,10 @@ router.put('/enable', verifyRole('master'),roleController.enableAccount); // n�
 // Các route chỉ cho phép 'admin' hoặc 'master'
 router.get('/', verifyRole('master'), roleController.getAllRoles);
 router.get('/:id', verifyRole('master'), roleController.getRoleById);
-router.post('/create', verifyRole('master'), roleController.createRole);
+router.post('/create', roleController.createRole);
 router.put('/:id', verifyRole('master'), roleController.updateRole);
 router.delete('/:id', verifyRole('master'), roleController.deleteRole);
-router.post('/assign', verifyRole('master'), roleController.assignRoleToAccount);
+router.post('/assign', roleController.assignRoleToAccount);
 router.post('/remove', verifyRole('master'), roleController.removeRoleFromAccount);
 
 module.exports = router;
