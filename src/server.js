@@ -62,13 +62,16 @@ app.use('/', telegramWebhook);
 //     .catch(err => {
 //         console.error('Kết nối MongoDB thất bại', err);
 //     });
-mongoose.connect('mongodb://mongo:couQibWXAIZRTfDWQjjCSajfOiPZpnhR@caboose.proxy.rlwy.net:51891/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => {
-        console.log('Kết nối MongoDB thành công');
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-        });
-    })
-    .catch(err => {
-        console.error('Kết nối MongoDB thất bại', err);
+mongoose.connect('mongodb://mongo:couQibWXAIZRTfDWQjjCSajfOiPZpnhR@caboose.proxy.rlwy.net:51891', { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true 
+})
+.then(() => {
+    console.log('Kết nối MongoDB thành công');
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server is running on port ${PORT}`);
     });
+})
+.catch(err => {
+    console.error('Kết nối MongoDB thất bại', err);
+});
