@@ -127,40 +127,60 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const account = await Account.findOne({ email }).populate('roles');
 
-        if (!account || !account.enabled) {
-            return res.status(401).json({ status: "thất bại", message: "Tài khoản không tồn tại hoặc chưa xác thực." });
+        if (!account) {
+            return res.status(401).json({
+                status: "thất bại",
+                message: "Tài khoản không tồn tại hoặc chưa được xác thực."
+            });
+        }
+
+        if (!account.enabled) {
+            return res.status(401).json({
+                status: "thất bại",
+                message: "Tài khoản chưa được xác thực."
+            });
         }
 
         if (!account.status) {
-            return res.status(403).json({ status: "thất bại", message: "Tài khoản bị khóa." });
+            return res.status(403).json({
+                status: "thất bại",
+                message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để mở khóa."
+            });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({ status: "thất bại", message: "Mật khẩu không đúng." });
+            return res.status(401).json({
+                status: "thất bại",
+                message: "Mật khẩu không đúng."
+            });
         }
 
+        // Tạo token nếu đăng nhập thành công
         const token = jwt.sign(
             { id: account._id, roles: account.roles.map(role => role.name) },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
 
-        return res.status(200).json({
-            status: "thành công",
+        res.status(200).json({
+            id: account._id,
+            fullName: account.fullName,
+            image: account.image,
+            token,
             message: "Đăng nhập thành công",
-            data: {
-                id: account._id,
-                fullName: account.fullName,
-                image: account.image,
-                token
-            }
+            status: "thành công"
         });
+
     } catch (error) {
-        console.error('Login error:', error);
-        return res.status(500).json({ status: "lỗi", message: "Lỗi máy chủ." });
+        res.status(500).json({
+            status: "lỗi",
+            message: "Lỗi máy chủ",
+            error: error.message
+        });
     }
 };
+
 
 // Lấy tài khoản theo ID
 const getAccountById = async (req, res) => {
