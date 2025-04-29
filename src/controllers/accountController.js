@@ -1,261 +1,223 @@
 const Account = require('../models/Account');
 const { sendVerificationEmail } = require('../services/emailService');
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcryptjs');
 const cloudinary = require('../cloudinary');
 const jwt = require('jsonwebtoken');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-// Tạo tài khoản
-const createAccount = async (req, res) => {
-    const { fullName, email, password, image } = req.body;
-
-    const existingAccount = await Account.findOne({ email });
-    if (existingAccount) {
-        return res.status(400).send('Email này đã được sử dụng.');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Tạo mã xác thực 6 số ngẫu nhiên
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const newAccount = new Account({
-        fullName,
-        email,
-        password: hashedPassword,
-        verificationToken: verificationCode, // Lưu mã xác thực vào trường verificationToken
-        enabled: false     // Mặc định là không xác thực
-    });
-
-    if (image) {
-        try {
-            let uploadedImage;
-            if (image.startsWith("data:")) {
-                uploadedImage = await uploadImageToCloudinary(image);
-            } else {
-                const base64Image = await convertImageUrlToBase64(image);
-                uploadedImage = await uploadImageToCloudinary(base64Image);
-            }
-            newAccount.image = uploadedImage;
-        } catch (error) {
-            return res.status(500).send('Đã xảy ra lỗi khi tải lên ảnh.');
-        }
-    }
-
-    await newAccount.save();
-
+const sharp = require('sharp');
+const { Readable } = require('stream');
+// Upload ảnh lên Cloudinary
+const uploadImage = async (image) => {
     try {
-        await sendVerificationEmail(email, verificationCode); // Gửi mã xác thực
-        res.status(201).send('Tài khoản đã được tạo. Vui lòng kiểm tra email để nhận mã xác thực.');
+        let buffer;
+
+        if (image.startsWith('data:')) {
+            // Nếu ảnh là base64
+            const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+            buffer = Buffer.from(base64Data, 'base64');
+        } else {
+            // Nếu ảnh là URL
+            const response = await fetch(image);
+            buffer = await response.buffer();
+        }
+
+        // Resize ảnh trước khi upload (ví dụ resize max chiều ngang/cao = 500px)
+        const resizedBuffer = await sharp(buffer)
+            .resize({ width: 500, height: 500, fit: 'inside' })
+            .jpeg({ quality: 80 }) // Nén ảnh nhẹ
+            .toBuffer();
+
+        // Upload buffer resized lên Cloudinary
+        return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { resource_type: 'image' },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result.secure_url);
+                }
+            );
+            Readable.from(resizedBuffer).pipe(stream);
+        });
     } catch (error) {
-        return res.status(500).send('Đã xảy ra lỗi khi gửi email xác thực.');
+        console.error('Upload image error:', error);
+        throw error;
     }
 };
+
+// Tạo tài khoản
+const createAccount = async (req, res) => {
+    try {
+        const { fullName, email, password, image } = req.body;
+
+        // Kiểm tra tài khoản tồn tại
+        const existingAccount = await Account.findOne({ email });
+        if (existingAccount) {
+            return res.status(400).json({ status: "thất bại", message: "Email này đã được sử dụng." });
+        }
+
+        // Hash password (cho nhanh hơn, rounds 8)
+        const hashedPassword = await bcrypt.hash(password, 8);
+
+        // Mã xác thực
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Tạo account mới
+        const newAccount = new Account({
+            fullName,
+            email,
+            password: hashedPassword,
+            verificationToken: verificationCode,
+            enabled: false
+        });
+
+        // Upload ảnh nếu có
+        if (image) {
+            try {
+                const uploadedImage = await uploadImage(image);
+                newAccount.image = uploadedImage;
+            } catch (error) {
+                console.error('Upload image error:', error);
+                return res.status(500).json({ status: "thất bại", message: "Lỗi khi tải ảnh lên." });
+            }
+        }
+
+        await newAccount.save();
+
+        // Gửi email xác thực (không await để trả response ngay)
+        sendVerificationEmail(email, verificationCode).catch(console.error);
+
+        return res.status(201).json({
+            status: "thành công",
+            message: "Tài khoản đã tạo. Vui lòng kiểm tra email để xác thực."
+        });
+    } catch (error) {
+        console.error('Create account error:', error);
+        return res.status(500).json({ status: "thất bại", message: "Lỗi khi tạo tài khoản." });
+    }
+};
+
 // Xác thực tài khoản
 const verifyAccount = async (req, res) => {
-    const { email, code } = req.body; // Lấy email và mã từ body
-
     try {
+        const { email, code } = req.body;
         const account = await Account.findOne({ email });
 
         if (!account) {
-            return res.status(404).json({
-                status: "thất bại",
-                message: "Tài khoản không tồn tại."
-            });
+            return res.status(404).json({ status: "thất bại", message: "Tài khoản không tồn tại." });
         }
 
-        // Kiểm tra mã xác thực
-        if (account.verificationToken === code) {
-            account.enabled = true; // Kích hoạt tài khoản
-            account.verificationToken = null; // Xóa mã xác thực
-            await account.save();
-            return res.status(200).json({
-                status: "thành công",
-                message: "Tài khoản đã được xác thực thành công!"
-            });
-        } else {
-            return res.status(400).json({
-                status: "thất bại",
-                message: "Mã xác thực không đúng."
-            });
+        if (account.verificationToken !== code) {
+            return res.status(400).json({ status: "thất bại", message: "Mã xác thực không đúng." });
         }
+
+        account.enabled = true;
+        account.verificationToken = null;
+        await account.save();
+
+        return res.status(200).json({ status: "thành công", message: "Tài khoản đã được xác thực!" });
     } catch (error) {
-        return res.status(500).json({
-            status: "thất bại",
-            message: "Đã xảy ra lỗi khi xác thực tài khoản."
-        });
+        console.error('Verify account error:', error);
+        return res.status(500).json({ status: "thất bại", message: "Lỗi khi xác thực tài khoản." });
     }
 };
 
+// Đăng nhập
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         const account = await Account.findOne({ email }).populate('roles');
 
-        if (!account) {
-            return res.status(401).json({
-                status: "thất bại",
-                message: "Tài khoản không tồn tại hoặc chưa được xác thực."
-            });
-        }
-
-        if (!account.enabled) {
-            return res.status(401).json({
-                status: "thất bại",
-                message: "Tài khoản chưa được xác thực."
-            });
+        if (!account || !account.enabled) {
+            return res.status(401).json({ status: "thất bại", message: "Tài khoản không tồn tại hoặc chưa xác thực." });
         }
 
         if (!account.status) {
-            return res.status(403).json({
-                status: "thất bại",
-                message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để mở khóa."
-            });
+            return res.status(403).json({ status: "thất bại", message: "Tài khoản bị khóa." });
         }
 
         const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({
-                status: "thất bại",
-                message: "Mật khẩu không đúng."
-            });
+            return res.status(401).json({ status: "thất bại", message: "Mật khẩu không đúng." });
         }
 
-        // Tạo token nếu đăng nhập thành công
         const token = jwt.sign(
             { id: account._id, roles: account.roles.map(role => role.name) },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
 
-        res.status(200).json({
-            id: account._id,
-            fullName: account.fullName,
-            image: account.image,
-            token,
+        return res.status(200).json({
+            status: "thành công",
             message: "Đăng nhập thành công",
-            status: "thành công"
+            data: {
+                id: account._id,
+                fullName: account.fullName,
+                image: account.image,
+                token
+            }
         });
-
     } catch (error) {
-        res.status(500).json({
-            status: "lỗi",
-            message: "Lỗi máy chủ",
-            error: error.message
-        });
+        console.error('Login error:', error);
+        return res.status(500).json({ status: "lỗi", message: "Lỗi máy chủ." });
     }
 };
 
-
-// Lấy thông tin tài khoản theo ID
+// Lấy tài khoản theo ID
 const getAccountById = async (req, res) => {
-    const { id } = req.params;
-
     try {
+        const { id } = req.params;
         const account = await Account.findById(id).populate('roles');
-
         if (!account) {
-            return res.status(404).json({
-                status: "thất bại",
-                message: "Tài khoản không tồn tại."
-            });
+            return res.status(404).json({ status: "thất bại", message: "Tài khoản không tồn tại." });
         }
-
-        res.status(200).json({
-            status: "thành công",
-            account
-        });
+        return res.status(200).json({ status: "thành công", data: account });
     } catch (error) {
-        return res.status(500).json({
-            status: "thất bại",
-            message: "Đã xảy ra lỗi khi lấy thông tin tài khoản."
-        });
+        console.error('Get account error:', error);
+        return res.status(500).json({ status: "thất bại", message: "Lỗi lấy tài khoản." });
     }
 };
 
 // Lấy tất cả tài khoản
 const getAllAccounts = async (req, res) => {
     try {
-        const accounts = await Account.find().populate('roles')
-        res.status(200).json(accounts);
+        const accounts = await Account.find().populate('roles');
+        return res.status(200).json({ status: "thành công", data: accounts });
     } catch (error) {
-        return res.status(500).json({
-            status: "thất bại",
-            message: "Đã xảy ra lỗi khi lấy danh sách tài khoản."
-        });
+        console.error('Get all accounts error:', error);
+        return res.status(500).json({ status: "thất bại", message: "Lỗi lấy danh sách tài khoản." });
     }
 };
 
-const convertImageUrlToBase64 = async (url) => {
-    const response = await fetch(url);
-    const buffer = await response.buffer();
-    return `data:image/jpeg;base64,${buffer.toString('base64')}`;
-};
-// Chức năng cập nhật tài khoản
+// Cập nhật tài khoản
 const updateAccount = async (req, res) => {
-    const { id } = req.params;
-    const { fullName, password, image } = req.body;
-
     try {
+        const { id } = req.params;
+        const { fullName, password, image } = req.body;
+
         const account = await Account.findById(id);
         if (!account) {
             return res.status(404).json({ status: "thất bại", message: "Tài khoản không tồn tại." });
         }
 
-        // Cập nhật tên đầy đủ
-        if (fullName) {
-            account.fullName = fullName;
-        }
+        if (fullName) account.fullName = fullName;
+        if (password) account.password = await bcrypt.hash(password, 8);
 
-        // Cập nhật mật khẩu
-        if (password) {
-            account.password = await bcrypt.hash(password, 10);
-        }
-
-        // Xử lý ảnh nếu có
         if (image) {
             try {
-                let uploadedImage;
-                if (image.startsWith("data:")) {
-                    // Nếu là base64
-                    uploadedImage = await uploadImageToCloudinary(image);
-                } else {
-                    // Nếu là URL thì convert sang base64 trước
-                    const base64Image = await convertImageUrlToBase64(image);
-                    uploadedImage = await uploadImageToCloudinary(base64Image);
-                }
+                const uploadedImage = await uploadImage(image);
                 account.image = uploadedImage;
             } catch (error) {
-                console.error('Image upload error:', error);
-                return res.status(500).json({ status: "thất bại", message: "Đã xảy ra lỗi khi tải lên hình ảnh." });
+                console.error('Upload image error:', error);
+                return res.status(500).json({ status: "thất bại", message: "Lỗi upload ảnh." });
             }
         }
 
-        // Lưu tài khoản đã cập nhật
-        const updatedAccount = await account.save();
-        res.status(200).json({
-            status: "thành công",
-            message: "Cập nhật tài khoản thành công!",
-            account: updatedAccount
-        });
+        await account.save();
+        return res.status(200).json({ status: "thành công", message: "Cập nhật thành công!" });
     } catch (error) {
-        console.error('Error updating account:', error);
-        return res.status(500).json({ status: "thất bại", message: "Đã xảy ra lỗi khi cập nhật tài khoản." });
+        console.error('Update account error:', error);
+        return res.status(500).json({ status: "thất bại", message: "Lỗi cập nhật tài khoản." });
     }
-};
-
-
-// Chức năng upload hình ảnh lên Cloudinary
-const uploadImageToCloudinary = async (base64Image) => {
-    return new Promise((resolve, reject) => {
-        cloudinary.uploader.upload(base64Image, { resource_type: 'image' }, (error, result) => {
-            if (error) {
-                console.error('Error uploading to Cloudinary:', error);
-                return reject(error);
-            }
-            resolve(result.secure_url);
-        });
-    });
 };
 
 // Xác thực mật khẩu
