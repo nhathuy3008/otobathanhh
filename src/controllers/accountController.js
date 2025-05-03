@@ -157,11 +157,7 @@ const login = async (req, res) => {
         }
 
         // Tạo token nếu đăng nhập thành công
-        const token = jwt.sign(
-            { id: account._id, roles: account.roles.map(role => role.name) },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+ 
 
         res.status(200).json({
             id: account._id,
@@ -182,29 +178,42 @@ const login = async (req, res) => {
 };
 
 
-// Lấy tài khoản theo ID
+// Lấy thông tin tài khoản theo ID
 const getAccountById = async (req, res) => {
+    const { id } = req.params;
+
     try {
-        const { id } = req.params;
         const account = await Account.findById(id).populate('roles');
+
         if (!account) {
-            return res.status(404).json({ status: "thất bại", message: "Tài khoản không tồn tại." });
+            return res.status(404).json({
+                status: "thất bại",
+                message: "Tài khoản không tồn tại."
+            });
         }
-        return res.status(200).json({ status: "thành công", data: account });
+
+        res.status(200).json({
+            status: "thành công",
+            account
+        });
     } catch (error) {
-        console.error('Get account error:', error);
-        return res.status(500).json({ status: "thất bại", message: "Lỗi lấy tài khoản." });
+        return res.status(500).json({
+            status: "thất bại",
+            message: "Đã xảy ra lỗi khi lấy thông tin tài khoản."
+        });
     }
 };
 
 // Lấy tất cả tài khoản
 const getAllAccounts = async (req, res) => {
     try {
-        const accounts = await Account.find().populate('roles');
-        return res.status(200).json({ status: "thành công", data: accounts });
+        const accounts = await Account.find().populate('roles');    
+        res.status(200).json(accounts);
     } catch (error) {
-        console.error('Get all accounts error:', error);
-        return res.status(500).json({ status: "thất bại", message: "Lỗi lấy danh sách tài khoản." });
+        return res.status(500).json({
+            status: "thất bại",
+            message: "Đã xảy ra lỗi khi lấy danh sách tài khoản."
+        });
     }
 };
 
