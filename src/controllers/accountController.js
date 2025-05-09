@@ -465,6 +465,23 @@ const deleteAccount = async (req, res) => {
         });
     }
 };
+// Đếm tổng số tài khoản
+const countAccounts = async (req, res) => {
+    try {
+        const totalAccounts = await Account.countDocuments();
+        res.status(200).json({
+            status: "thành công",
+            totalAccounts
+        });
+    } catch (error) {
+        console.error("Lỗi khi đếm tài khoản:", error);
+        res.status(500).json({
+            status: "thất bại",
+            message: "Đã xảy ra lỗi khi đếm tài khoản."
+        });
+    }
+};
+
 module.exports = {
     createAccount,
     verifyAccount,
@@ -478,5 +495,6 @@ module.exports = {
     verifyCode,
     googleLogin,
     facebookLogin,
-    deleteAccount
+    deleteAccount,
+    countAccounts
 };

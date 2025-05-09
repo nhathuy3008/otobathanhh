@@ -14,6 +14,7 @@ router.post('/create', accountController.createAccount);
 router.get('/verify', accountController.verifyAccount);
 router.post('/login', accountController.login);
 router.get('/', accountController.getAllAccounts);
+router.get('/count',verifyRole('admin','master'), accountController.countAccounts);
 router.delete('/:id', verifyRole('master'), accountController.deleteAccount);
 
 router.put('/:id', upload.single('image'), accountController.updateAccount);
