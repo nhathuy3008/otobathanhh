@@ -33,27 +33,6 @@ const uploadImage = async (base64) => {
 };
 
 // Tạo sản phẩm
-// const createProduct = async (req, res) => {
-//     try {
-//         const { image, subImages, ...data } = req.body;
-
-//         const imageUrl = image ? await uploadImage(image) : null;
-//         const subImageUrls = subImages && subImages.length > 0
-//             ? await Promise.all(subImages.map(uploadImage))
-//             : [];
-
-//         const product = new Product({
-//             ...data,
-//             image: imageUrl,
-//             subImages: subImageUrls
-//         });
-
-//         await product.save();
-//         return res.status(201).json(product);
-//     } catch (error) {
-//         return res.status(400).json({ message: error.message });
-//     }
-// };
 const createProduct = async (req, res) => {
     try {
         const { image, subImages, ...data } = req.body;
@@ -132,27 +111,6 @@ function removeVietnameseTones(str) {
 }
 
 // Gợi ý hoặc tìm kiếm sản phẩm theo tên
-// const searchProductsByName = async (req, res) => {
-//     const { name } = req.query;
-
-//     try {
-//         let products;
-
-//         if (!name) {
-//             // Nếu không nhập tên -> gợi ý 5 sản phẩm mới nhất
-//             products = await Product.find().sort({ createdAt: -1 }).limit(5).populate('category_id');
-//         } else {
-//             // Nếu có nhập tên -> tìm theo từ khóa
-//             products = await Product.find({
-//                 name: { $regex: name, $options: 'i' }
-//             }).populate('category_id');
-//         }
-
-//         return res.status(200).json(products);
-//     } catch (error) {
-//         return res.status(500).json({ message: error.message });
-//     }
-// };
 const searchProductsByName = async (req, res) => {
     const { name } = req.query;
 
@@ -178,6 +136,50 @@ const searchProductsByName = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const getFeaturedProducts = async (req, res) => {
+    try {
+        const featuredProducts = await Product.find({ isFeatured: true }).populate('category_id');
+        return res.status(200).json(featuredProducts);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+// Cập nhật trạng thái nổi bật cho sản phẩm
+const updateFeaturedStatus = async (req, res) => {
+    const { id } = req.params;
+    const { isFeatured } = req.body;
+
+    try {
+        const product = await Product.findByIdAndUpdate(
+            id,
+            { isFeatured },
+            { new: true, runValidators: true }
+        );
+
+        if (!product) {
+            return res.status(404).json({ message: 'Sản phẩm không tìm thấy' });
+        }
+
+        return res.status(200).json({ message: `Đã cập nhật trạng thái nổi bật cho sản phẩm ${product.name}`, product });
+    } catch (error) {
+        return res.status(400).json({ message: error.message });
+    }
+};
+const getFeaturedProductById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const product = await Product.findOne({ _id: id, isFeatured: true }).populate('category_id');
+
+        if (!product) {
+            return res.status(404).json({ message: 'Sản phẩm nổi bật không tồn tại' });
+        }
+
+        return res.status(200).json(product);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
 
 module.exports = {
     getAllProducts,
@@ -185,5 +187,8 @@ module.exports = {
     createProduct,
     updateProduct,
     deleteProduct,
-    searchProductsByName
+    searchProductsByName,
+    getFeaturedProducts,
+    updateFeaturedStatus,
+    getFeaturedProductById
 };

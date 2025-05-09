@@ -42,7 +42,11 @@ const productSchema = new Schema({
     date: {
         type: Date,
         default: Date.now,
-    }
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false,
+    },
 }, { timestamps: true }); // Tự động thêm createdAt và updatedAt
 
 module.exports = mongoose.model('Product', productSchema);

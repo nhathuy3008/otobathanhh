@@ -44,11 +44,16 @@ const contactSchema = new Schema({
         type: [String],
         default: [],
     },
+    updateLogs: [{
+        reason: String,
+        updatedAt: Date
+    }],
     status: {
         type: String,
         enum: ['pending', 'confirmed', 'cancelled'],
         default: 'pending',
     },
+    
 }, { timestamps: true });
 
 module.exports = mongoose.model('Contact', contactSchema);

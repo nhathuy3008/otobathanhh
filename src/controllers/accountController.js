@@ -157,7 +157,11 @@ const login = async (req, res) => {
         }
 
         // Tạo token nếu đăng nhập thành công
- 
+        const token = jwt.sign(
+            { id: account._id, roles: account.roles.map(role => role.name) },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
 
         res.status(200).json({
             id: account._id,
@@ -392,8 +396,14 @@ const googleLogin = async (req, res) => {
     try {
         const user = req.user;
 
-        // Tạo JWT
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        if (!user.status) {
+            return res.status(403).json({
+                status: "thất bại",
+                message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để mở khóa."
+            });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.status(200).json({
             message: 'Đăng nhập Google thành công',
@@ -404,11 +414,19 @@ const googleLogin = async (req, res) => {
         res.status(500).json({ message: 'Lỗi đăng nhập bằng Google', error: err.message });
     }
 };
+
 const facebookLogin = async (req, res) => {
     try {
         const user = req.user;
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        if (!user.status) {
+            return res.status(403).json({
+                status: "thất bại",
+                message: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để mở khóa."
+            });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.status(200).json({
             message: 'Đăng nhập Facebook thành công',
@@ -419,6 +437,7 @@ const facebookLogin = async (req, res) => {
         res.status(500).json({ message: 'Lỗi đăng nhập Facebook', error: err.message });
     }
 };
+
 // Xóa tài khoản
 const deleteAccount = async (req, res) => {
     const { id } = req.params;
