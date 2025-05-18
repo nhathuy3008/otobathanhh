@@ -55,7 +55,17 @@ app.use('/', telegramWebhook);
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
-})
+}).then(() => {
+    console.log('✅ Connected to MongoDB');
+
+    // 🔥 Quan trọng: bắt đầu server sau khi kết nối MongoDB thành công
+    app.listen(PORT, () => {
+        console.log(`🚀 Server is running on port ${PORT}`);
+    });
+}).catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+});
+
 // mongoose.connect('mongodb://localhost:27017/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
 //     .then(() => {
 //         console.log('Kết nối MongoDB thành công');
