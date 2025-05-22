@@ -164,11 +164,12 @@ app.use('/', telegramWebhook);
 }).then(() => {
     console.log('✅ Connected to MongoDB');
 
-    // 🔥 Quan trọng: bắt đầu server sau khi kết nối MongoDB thành công
-    app.listen(PORT, () => {
+    // 👇 FIX: Dùng server.listen thay vì app.listen
+    server.listen(PORT, () => {
         console.log(`🚀 Server is running on port ${PORT}`);
     });
 }).catch(err => {
     console.error('❌ MongoDB connection error:', err);
 });
+
 
