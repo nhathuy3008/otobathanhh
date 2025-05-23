@@ -207,21 +207,21 @@ function setupSocket(io) {
 
     // Admin ends chat
     socket.on('end_chat', ({ userId }) => {
-      if (!userToAdmin[userId] || userToAdmin[userId] !== socket.id) return;
+      // if (!userToAdmin[userId] || userToAdmin[userId] !== socket.id) return;
 
       const userSocketId = findSocketIdByUserId(io, userId);
       if (userSocketId) {
         io.to(userSocketId).emit('chat_ended', { message: 'Admin đã kết thúc cuộc trò chuyện.' });
       }
 
-      delete userToAdmin[userId];
-      adminToUsers[socket.id].delete(userId);
+      // delete userToAdmin[userId];
+      // adminToUsers[socket.id].delete(userId);
 
-      // Đưa user về lại queue
-      queue.push({ userId, socketId: userSocketId });
+      // // Đưa user về lại queue
+      // queue.push({ userId, socketId: userSocketId });
 
-      // Gán user mới cho admin
-      assignNextUser(io, socket.id);
+      // // Gán user mới cho admin
+      // assignNextUser(io, socket.id);
     });
 
     socket.on('disconnect', () => {
