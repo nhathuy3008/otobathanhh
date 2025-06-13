@@ -110,7 +110,7 @@ const app = express();
 const server = http.createServer(app); // 👈 Thay vì app.listen
 const io = new Server(server, {
     cors: {
-        origin: ['https://bathanhvn.com', 'http://localhost:5173','https://fe-otobathanh.vercel.app','https://otobathanh-front-end.vercel.app','https://www.bathanhvn.com'],
+        origin: ['https://bathanhvn.com', 'http://localhost:3001','https://fe-otobathanh.vercel.app','https://otobathanh-front-end.vercel.app','https://www.bathanhvn.com'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
@@ -122,7 +122,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-    origin: ['https://bathanhvn.com', 'http://localhost:5173','https://fe-otobathanh.vercel.app','https://otobathanh-front-end.vercel.app','https://www.bathanhvn.com'],
+    origin: ['https://bathanhvn.com', 'http://localhost:3001','https://fe-otobathanh.vercel.app','https://otobathanh-front-end.vercel.app','https://www.bathanhvn.com'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
