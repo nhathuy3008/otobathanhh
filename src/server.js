@@ -146,7 +146,9 @@ app.use('/api/favorites', favoriteRoutes);
 app.use('/api/categoriesStaff', categorystaffRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/', telegramWebhook);
-
+app.get("/", (req, res) => {
+    res.status(200).send("🚀 Bá Thành backend is running.");
+});
 // MongoDB Connection + Server Start
 // mongoose.connect('mongodb://localhost:27017/otobathanh', { useNewUrlParser: true, useUnifiedTopology: true })
 //     .then(() => {
@@ -158,6 +160,7 @@ app.use('/', telegramWebhook);
 //     .catch(err => {
 //         console.error('❌ Kết nối MongoDB thất bại', err);
 //     });
+
     mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
